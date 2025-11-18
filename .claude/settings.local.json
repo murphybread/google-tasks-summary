@@ -11,7 +11,8 @@
       "Bash(node setup_simple.js:*)",
       "Bash(clasp create-deployment:*)",
       "Bash(cat:*)",
-      "Bash(clasp list-deployments:*)"
+      "Bash(clasp list-deployments:*)",
+      "Bash(npm run deploy:*)"
     ],
     "deny": [],
     "ask": []

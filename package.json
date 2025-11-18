@@ -5,7 +5,7 @@
   "main": "Code.js",
   "scripts": {
     "push": "clasp push",
-    "deploy": "npm run push && clasp update-deployment AKfycbxwi03iPbI7yvBTTagbtpt-sg4GU5JRlZ4kAQnXh9G8X_wiPJNkq_kPKMdiIGOoMQ",
+    "deploy": "node deploy.js",
     "deploy:new": "npm run push && clasp create-deployment",
     "deployments": "clasp list-deployments"
   },

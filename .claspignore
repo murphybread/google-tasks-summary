@@ -2,6 +2,7 @@
 set_properties.js
 setup_simple.js
 setup_manual.md
+deploy.js
 node_modules/**
 package.json
 package-lock.json
