@@ -1,0 +1,30 @@
+# --- 비밀 정보 및 사용자별 설정 파일 ---
+# API 키, 시트 ID 등 민감한 정보를 담고 있음. 절대로 Git에 올리면 안 됨!
+.env
+
+# Google Apps Script 프로젝트 ID와 로컬 경로 설정을 담고 있음.
+# 각 개발자는 'clasp clone'을 통해 자신만의 파일을 생성해야 함.
+.clasp.json
+
+
+# --- 의존성(Dependencies) 폴더 ---
+# 'npm install' 실행 시 자동으로 생성되며, 용량이 매우 클 수 있음.
+# 프로젝트를 받는 모든 사람이 로컬에서 직접 생성해야 함.
+/node_modules
+
+
+# --- 운영체제(OS) 및 에디터 자동 생성 파일 ---
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Visual Studio Code 에디터 설정
+.vscode/
+
+
+# --- 로그 파일 ---
+# npm 실행 중 오류가 발생하면 생성될 수 있는 로그 파일
+npm-debug.log*
+yarn-error.log

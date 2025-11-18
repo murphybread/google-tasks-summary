@@ -1,0 +1,26 @@
+{
+  "name": "google-tasks-summary",
+  "version": "1.0.0",
+  "description": "",
+  "main": "Code.js",
+  "scripts": {
+    "setup": "node set_properties.js",
+    "push": "clasp push",
+    "deploy": "clasp push && clasp deploy --deploymentId YOUR_DEPLOYMENT_ID",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/murphybread/google-tasks-summary.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/murphybread/google-tasks-summary/issues"
+  },
+  "homepage": "https://github.com/murphybread/google-tasks-summary#readme",
+  "devDependencies": {
+    "dotenv": "^17.2.3"
+  }
+}

@@ -1,0 +1,11 @@
+# Ignore Node.js files
+set_properties.js
+setup_simple.js
+setup_manual.md
+node_modules/**
+package.json
+package-lock.json
+.env
+.env-sample
+.gitignore
+README.md

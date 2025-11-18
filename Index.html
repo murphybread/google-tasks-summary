@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif; margin: 20px; background-color: #f8f9fa; color: #212529; }
+    h2, h3 { color: #343a40; }
+    textarea { width: 95%; min-height: 200px; font-family: monospace; font-size: 14px; padding: 10px; border: 1px solid #ced4da; border-radius: 5px; background-color: #fff; }
+    .button-container { margin-top: 10px; display: flex; flex-wrap: wrap; }
+    button { font-size: 16px; padding: 10px 15px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; font-weight: 500; transition: background-color 0.2s, opacity 0.2s; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .main-btn { background-color: #28a745; color: white; }
+    .secondary-btn { background-color: #6c757d; color: white; }
+    .weekly-btn { background-color: #007bff; color: white; }
+    #status { margin-top: 15px; font-weight: bold; font-size: 14px; height: 20px; }
+    #weekly-summary-container, #history-container { display: none; margin-top: 25px; background: #e9ecef; border: 1px solid #ddd; border-radius: 5px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .popup-header { display: flex; justify-content: space-between; align-items: center; }
+    .popup-header h3 { margin: 0; }
+    .close-btn { background-color: #dc3545; color: white; font-size: 12px; padding: 5px 10px; }
+    .content-area { white-space: pre-wrap; font-family: monospace; font-size: 14px; color: #333; margin-top: 15px; background-color: #fff; padding: 10px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h2>🗓️ 오늘의 목표</h2>
+  <textarea id="md-output" readonly>로딩 중...</textarea>
+  <div class="button-container">
+    <button id="record-btn" class="main-btn">🔄 오늘 목표 갱신 및 기록</button>
+    <button id="weekly-btn" class="weekly-btn">📊 주간 기록 관리</button>
+    <button id="history-btn" class="secondary-btn">📜 일일 히스토리</button>
+  </div>
+  <div id="status"></div>
+
+  <div id="weekly-summary-container">
+    <div class="popup-header">
+      <h3 id="weekly-title">📊 주간 정리</h3>
+      <button id="weekly-close-btn" class="close-btn">❌ 닫기</button>
+    </div>
+    <div class="button-container">
+        <button id="prev-week-btn"> &lt; 이전 주 </button>
+        <button id="next-week-btn"> 다음 주 &gt; </button>
+    </div>
+    <div id="weekly-content" class="content-area">로딩 중...</div>
+  </div>
+
+  <div id="history-container">
+    <div class="popup-header">
+        <h3>📜 일일 히스토리</h3>
+        <button id="history-close-btn" class="close-btn">❌ 닫기</button>
+    </div>
+    <div id="history-content" class="content-area"></div>
+  </div>
+
+  <script>
+    const mdOutput = document.getElementById("md-output");
+    const statusDiv = document.getElementById("status");
+    const weeklyContainer = document.getElementById("weekly-summary-container");
+    const weeklyContent = document.getElementById("weekly-content");
+    const weeklyTitle = document.getElementById("weekly-title");
+    const historyContainer = document.getElementById("history-container");
+    const historyContent = document.getElementById("history-content");
+    
+    // 💡 모든 버튼을 배열로 관리하여 한번에 비활성화/활성화
+    const allButtons = Array.from(document.querySelectorAll('button'));
+    let currentWeekOffset = 0;
+
+    function setButtonsDisabled(disabled) {
+      allButtons.forEach(btn => btn.disabled = disabled);
+    }
+
+    function loadDailyTasks() {
+      statusDiv.innerText = "🔄 오늘 목표 로딩 중...";
+      mdOutput.value = "로딩 중...";
+      setButtonsDisabled(true); // 💡 모든 버튼 비활성화
+      google.script.run
+        .withSuccessHandler(onDailyTasksLoaded)
+        .withFailureHandler(onFailure)
+        .getTodaysTasksAndFormatMD();
+    }
+
+    function onDailyTasksLoaded(mdContent) {
+      mdOutput.value = mdContent;
+      google.script.run
+        .withSuccessHandler(message => {
+          statusDiv.innerText = message;
+          setButtonsDisabled(false); // 💡 작업 완료 후 모든 버튼 활성화
+        })
+        .withFailureHandler(onFailure)
+        .recordHistory(mdContent);
+    }
+
+    // --- 💡 주간 기록 관리 로직 수정 ---
+    function loadWeeklySummary(offset) {
+      currentWeekOffset = offset;
+      const statusMsg = offset === 0 ? "🔄 이번 주 최신 기록을 가져와 저장하는 중..." : "📊 주간 기록 로딩 중...";
+      
+      statusDiv.innerText = statusMsg;
+      weeklyContainer.style.display = 'block';
+      historyContainer.style.display = 'none';
+      weeklyContent.innerText = "로딩 중...";
+      setButtonsDisabled(true); // 💡 모든 버튼 비활성화
+      
+      google.script.run
+        .withSuccessHandler(onWeeklySummaryLoaded)
+        .withFailureHandler(onFailure)
+        .getOrUpdateWeeklySummary(offset);
+    }
+
+    function onWeeklySummaryLoaded({ content, source }) {
+      const lines = content.split('\n');
+      weeklyTitle.innerText = lines.shift().replace(/\*\*/g, '');
+      weeklyContent.innerText = lines.join('\n').trim();
+      
+      let sourceMsg = source === 'Sheet' ? "(저장된 기록)" : "(최신 기록 갱신)";
+      if (currentWeekOffset !== 0 && source === 'API') sourceMsg = "(최초 기록 생성)";
+      statusDiv.innerText = `✅ 주간 기록 로딩 완료 ${sourceMsg}`;
+      setButtonsDisabled(false); // 💡 작업 완료 후 모든 버튼 활성화
+    }
+    
+    function loadHistory() {
+      statusDiv.innerText = "📜 일일 히스토리 로딩 중...";
+      historyContainer.style.display = 'block';
+      weeklyContainer.style.display = 'none';
+      historyContent.innerHTML = "로딩 중...";
+      setButtonsDisabled(true); // 💡 모든 버튼 비활성화
+      google.script.run
+        .withSuccessHandler(onHistoryLoaded)
+        .withFailureHandler(onFailure)
+        .getHistory();
+    }
+    
+    function onHistoryLoaded(items) {
+      if (items.length === 0) {
+        historyContent.innerHTML = "<p>기록된 히스토리가 없습니다.</p>";
+      } else {
+        historyContent.innerHTML = items.map(item => `
+          <details style="margin-bottom: 8px;">
+            <summary><b>${item.date}</b> - ${item.title.replace(/\*\*/g, '')}</summary>
+            <div style="padding-top: 10px;">${item.content.replace(/</g, "&lt;")}</div>
+          </details>
+        `).join('');
+      }
+      statusDiv.innerText = "✅ 일일 히스토리 로딩 완료";
+      setButtonsDisabled(false); // 💡 작업 완료 후 모든 버튼 활성화
+    }
+
+    function onFailure(error) {
+      const msg = `❌ 오류 발생: ${error.message}`;
+      statusDiv.innerText = msg;
+      mdOutput.value = msg;
+      if (weeklyContainer.style.display === 'block') weeklyContent.innerText = msg;
+      if (historyContainer.style.display === 'block') historyContent.innerText = msg;
+      setButtonsDisabled(false); // 💡 실패 시에도 모든 버튼 활성화
+    }
+
+    document.addEventListener("DOMContentLoaded", loadDailyTasks);
+    document.getElementById("record-btn").addEventListener("click", loadDailyTasks);
+    document.getElementById("weekly-btn").addEventListener("click", () => loadWeeklySummary(0));
+    document.getElementById("prev-week-btn").addEventListener("click", () => loadWeeklySummary(currentWeekOffset - 1));
+    document.getElementById("next-week-btn").addEventListener("click", () => loadWeeklySummary(currentWeekOffset + 1));
+    document.getElementById("history-btn").addEventListener("click", loadHistory);
+    document.getElementById("weekly-close-btn").addEventListener("click", () => weeklyContainer.style.display = 'none');
+    document.getElementById("history-close-btn").addEventListener("click", () => historyContainer.style.display = 'none');
+  </script>
+</body>
+</html>

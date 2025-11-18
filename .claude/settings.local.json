@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(nul)",
+      "Bash(clasp push:*)",
+      "Bash(clasp deployments:*)",
+      "Bash(clasp login:*)",
+      "Bash(clasp logout:*)",
+      "Bash(npm run setup:*)",
+      "Bash(clasp open-script:*)",
+      "Bash(node setup_simple.js:*)",
+      "Bash(clasp create-deployment:*)",
+      "Bash(cat:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
