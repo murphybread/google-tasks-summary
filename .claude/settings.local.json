@@ -10,7 +10,8 @@
       "Bash(clasp open-script:*)",
       "Bash(node setup_simple.js:*)",
       "Bash(clasp create-deployment:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(clasp list-deployments:*)"
     ],
     "deny": [],
     "ask": []

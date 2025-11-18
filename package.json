@@ -4,10 +4,10 @@
   "description": "",
   "main": "Code.js",
   "scripts": {
-    "setup": "node set_properties.js",
     "push": "clasp push",
-    "deploy": "clasp push && clasp deploy --deploymentId YOUR_DEPLOYMENT_ID",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "deploy": "npm run push && clasp update-deployment AKfycbxwi03iPbI7yvBTTagbtpt-sg4GU5JRlZ4kAQnXh9G8X_wiPJNkq_kPKMdiIGOoMQ",
+    "deploy:new": "npm run push && clasp create-deployment",
+    "deployments": "clasp list-deployments"
   },
   "repository": {
     "type": "git",

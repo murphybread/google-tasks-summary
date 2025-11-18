@@ -23,6 +23,9 @@ Thumbs.db
 # Visual Studio Code 에디터 설정
 .vscode/
 
+# Claude Code 로컬 설정
+.claude/
+
 
 # --- 로그 파일 ---
 # npm 실행 중 오류가 발생하면 생성될 수 있는 로그 파일
