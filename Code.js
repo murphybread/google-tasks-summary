@@ -86,14 +86,45 @@ function getTodaysTasksAndFormatMD() {
       if (response.items) {
         response.items.forEach((task) => {
           let isTaskForToday = false;
+          let reason = "";
+
+          // 1. 오늘 완료된 태스크
           if (
             task.completed &&
             Utilities.formatDate(new Date(task.completed), "Asia/Seoul", "yyyy-MM-dd") === todayKstString
-          )
+          ) {
             isTaskForToday = true;
-          if (task.due && Utilities.formatDate(new Date(task.due), "Asia/Seoul", "yyyy-MM-dd") === todayKstString)
+            reason = "완료";
+          }
+
+          // 2. 오늘이 마감일인 태스크
+          if (task.due && Utilities.formatDate(new Date(task.due), "Asia/Seoul", "yyyy-MM-dd") === todayKstString) {
             isTaskForToday = true;
-          if (isTaskForToday && task.title) todayTasks.push({ title: task.title, status: task.status });
+            if (reason) reason += ", 마감";
+            else reason = "마감";
+          }
+
+          // 3. 오늘 생성된 태스크 (updated 필드 사용)
+          if (
+            task.updated &&
+            Utilities.formatDate(new Date(task.updated), "Asia/Seoul", "yyyy-MM-dd") === todayKstString &&
+            !task.completed // 완료되지 않은 태스크만
+          ) {
+            // 생성 날짜를 직접 확인하는 것이 어려우므로 updated 필드 활용
+            // updated가 오늘이고 완료되지 않은 태스크는 오늘 생성/수정된 것으로 간주
+            if (!reason) { // 이미 마감으로 표시되지 않았다면
+              isTaskForToday = true;
+              reason = "신규/수정";
+            }
+          }
+
+          if (isTaskForToday && task.title) {
+            todayTasks.push({
+              title: task.title,
+              status: task.status,
+              reason: reason
+            });
+          }
         });
       }
       pageToken = response.nextPageToken;
@@ -102,9 +133,15 @@ function getTodaysTasksAndFormatMD() {
     throw new Error(`'${TASK_LIST_NAME}' 목록에서 태스크를 가져오는 중 오류: ${e.message}`);
   }
   const title = `**${TEAM_MEMBER_NAME} 님 (${todayKstString}) 일일 목록입니다** 🗓️\n\n`;
-  if (todayTasks.length === 0) return title + `- (오늘 마감/완료된 태스크 없음)`;
+  if (todayTasks.length === 0) return title + `- (오늘 관련 태스크 없음)`;
+
+  // 완료되지 않은 태스크를 먼저, 완료된 태스크를 나중에 정렬
   todayTasks.sort((a, b) => (a.status === "completed" ? 1 : -1) - (b.status === "completed" ? 1 : -1));
-  const tasksMd = todayTasks.map((task) => `- ${task.status === "completed" ? "[x]" : "[ ]"} ${task.title}`).join("\n");
+
+  const tasksMd = todayTasks.map((task) =>
+    `- ${task.status === "completed" ? "[x]" : "[ ]"} ${task.title} (${task.reason})`
+  ).join("\n");
+
   return title + tasksMd;
 }
 function recordHistory(mdContent) {
