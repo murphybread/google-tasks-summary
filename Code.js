@@ -97,11 +97,38 @@ function getTodaysTasksAndFormatMD() {
             reason = "완료";
           }
 
-          // 2. 오늘이 마감일인 태스크
-          if (task.due && Utilities.formatDate(new Date(task.due), "Asia/Seoul", "yyyy-MM-dd") === todayKstString) {
-            isTaskForToday = true;
-            if (reason) reason += ", 마감";
-            else reason = "마감";
+          // 2. 마감일 체크 (오늘, 과거, 미래 모두)
+          if (task.due && task.status !== "completed") {
+            const dueDate = new Date(task.due);
+            const dueDateKst = Utilities.formatDate(dueDate, "Asia/Seoul", "yyyy-MM-dd");
+            const today = new Date(todayKstString);
+            const due = new Date(dueDateKst);
+
+            // 날짜 차이 계산 (일 단위)
+            const diffTime = due.getTime() - today.getTime();
+            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+            // D-day 계산: 오늘이면 D-Day, 과거면 D+N, 미래면 D-N
+            let dDayLabel = "";
+            if (diffDays === 0) {
+              dDayLabel = "마감 D-Day";
+              isTaskForToday = true;
+            } else if (diffDays < 0) {
+              dDayLabel = `마감 D+${Math.abs(diffDays)}`;
+              // 과거 마감 중 최근 3일까지만 표시
+              if (Math.abs(diffDays) <= 3) {
+                isTaskForToday = true;
+              }
+            } else if (diffDays > 0 && diffDays <= 3) {
+              dDayLabel = `마감 D-${diffDays}`;
+              // 미래 마감 중 3일 이내만 표시
+              isTaskForToday = true;
+            }
+
+            if (dDayLabel) {
+              if (reason) reason += `, ${dDayLabel}`;
+              else reason = dDayLabel;
+            }
           }
 
           // 3. 오늘 생성된 태스크 (updated 필드 사용)
