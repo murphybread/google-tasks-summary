@@ -162,14 +162,60 @@ function getTodaysTasksAndFormatMD() {
   const title = `**${TEAM_MEMBER_NAME} 님 (${todayKstString}) 일일 목록입니다** 🗓️\n\n`;
   if (todayTasks.length === 0) return title + `- (오늘 관련 태스크 없음)`;
 
-  // 완료되지 않은 태스크를 먼저, 완료된 태스크를 나중에 정렬
-  todayTasks.sort((a, b) => (a.status === "completed" ? 1 : -1) - (b.status === "completed" ? 1 : -1));
+  // 태스크를 카테고리별로 분류
+  const dDayTasks = todayTasks.filter(t => t.reason.includes('마감 D-Day'));
+  const completedTasks = todayTasks.filter(t => t.status === 'completed');
+  const soonDueTasks = todayTasks.filter(t => t.reason.includes('마감 D-') && !t.reason.includes('D-Day'));
+  const overdueTasks = todayTasks.filter(t => t.reason.includes('마감 D+'));
+  const newTasks = todayTasks.filter(t =>
+    t.reason === '신규/수정' &&
+    t.status !== 'completed' &&
+    !t.reason.includes('마감')
+  );
 
-  const tasksMd = todayTasks.map((task) =>
-    `- ${task.status === "completed" ? "[x]" : "[ ]"} ${task.title} (${task.reason})`
-  ).join("\n");
+  let result = title;
 
-  return title + tasksMd;
+  // 1. 오늘 마감 (D-Day)
+  if (dDayTasks.length > 0) {
+    result += `**🔥 오늘 마감**\n`;
+    result += dDayTasks.map(task =>
+      `- [ ] ${task.title} (${task.reason})`
+    ).join("\n") + "\n\n";
+  }
+
+  // 2. 완료된 태스크
+  if (completedTasks.length > 0) {
+    result += `**✅ 완료**\n`;
+    result += completedTasks.map(task =>
+      `- [x] ${task.title} (${task.reason})`
+    ).join("\n") + "\n\n";
+  }
+
+  // 3. 곧 마감 (D-1, D-2, D-3)
+  if (soonDueTasks.length > 0) {
+    result += `**⏰ 곧 마감**\n`;
+    result += soonDueTasks.map(task =>
+      `- [ ] ${task.title} (${task.reason})`
+    ).join("\n") + "\n\n";
+  }
+
+  // 4. 마감 지난 (D+)
+  if (overdueTasks.length > 0) {
+    result += `**⚠️ 마감 지남**\n`;
+    result += overdueTasks.map(task =>
+      `- [ ] ${task.title} (${task.reason})`
+    ).join("\n") + "\n\n";
+  }
+
+  // 5. 신규/수정
+  if (newTasks.length > 0) {
+    result += `**📝 신규/수정**\n`;
+    result += newTasks.map(task =>
+      `- [ ] ${task.title} (${task.reason})`
+    ).join("\n") + "\n\n";
+  }
+
+  return result.trim();
 }
 function recordHistory(mdContent) {
   /* 이전과 동일 */ try {
