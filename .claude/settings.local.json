@@ -12,7 +12,11 @@
       "Bash(clasp create-deployment:*)",
       "Bash(cat:*)",
       "Bash(clasp list-deployments:*)",
-      "Bash(npm run deploy:*)"
+      "Bash(npm run deploy:*)",
+      "Bash(dir:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: organize daily tasks by priority categories\n\nRestructure daily task display to improve readability and prioritization:\n- Group tasks into categories: Today Due, Completed, Soon Due, Overdue, New/Modified\n- Display most urgent tasks (D-Day) at the top\n- Add section headers with emojis for better visual distinction\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
