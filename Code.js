@@ -88,13 +88,14 @@ function getTodaysTasksAndFormatMD() {
           let isTaskForToday = false;
           let reason = "";
 
-          // 1. 오늘 완료된 태스크
-          if (
-            task.completed &&
-            Utilities.formatDate(new Date(task.completed), "Asia/Seoul", "yyyy-MM-dd") === todayKstString
-          ) {
-            isTaskForToday = true;
-            reason = "완료";
+          // 1. 완료된 태스크 (완료 날짜 저장)
+          let completedDate = null;
+          if (task.completed) {
+            completedDate = Utilities.formatDate(new Date(task.completed), "Asia/Seoul", "yyyy-MM-dd");
+            if (completedDate === todayKstString) {
+              isTaskForToday = true;
+              reason = `완료: ${completedDate}`;
+            }
           }
 
           // 2. 마감일 체크 (오늘, 과거, 미래 모두)
@@ -149,7 +150,8 @@ function getTodaysTasksAndFormatMD() {
             todayTasks.push({
               title: task.title,
               status: task.status,
-              reason: reason
+              reason: reason,
+              completedDate: completedDate
             });
           }
         });
@@ -163,19 +165,19 @@ function getTodaysTasksAndFormatMD() {
   if (todayTasks.length === 0) return title + `- (오늘 관련 태스크 없음)`;
 
   // 태스크를 카테고리별로 분류
-  const dDayTasks = todayTasks.filter(t => t.reason.includes('마감 D-Day'));
-  const completedTasks = todayTasks.filter(t => t.status === 'completed');
-  const soonDueTasks = todayTasks.filter(t => t.reason.includes('마감 D-') && !t.reason.includes('D-Day'));
-  const overdueTasks = todayTasks.filter(t => t.reason.includes('마감 D+'));
+  const dDayTasks = todayTasks.filter(t => t.reason.includes('마감 D-Day') && t.status !== 'completed');
+  const soonDueTasks = todayTasks.filter(t => t.reason.includes('마감 D-') && !t.reason.includes('D-Day') && t.status !== 'completed');
+  const overdueTasks = todayTasks.filter(t => t.reason.includes('마감 D+') && t.status !== 'completed');
   const newTasks = todayTasks.filter(t =>
     t.reason === '신규/수정' &&
     t.status !== 'completed' &&
     !t.reason.includes('마감')
   );
+  const completedTasks = todayTasks.filter(t => t.status === 'completed');
 
   let result = title;
 
-  // 1. 오늘 마감 (D-Day)
+  // 1. 오늘 마감 (D-Day) - 가장 중요
   if (dDayTasks.length > 0) {
     result += `**🔥 오늘 마감**\n`;
     result += dDayTasks.map(task =>
@@ -183,15 +185,7 @@ function getTodaysTasksAndFormatMD() {
     ).join("\n") + "\n\n";
   }
 
-  // 2. 완료된 태스크
-  if (completedTasks.length > 0) {
-    result += `**✅ 완료**\n`;
-    result += completedTasks.map(task =>
-      `- [x] ${task.title} (${task.reason})`
-    ).join("\n") + "\n\n";
-  }
-
-  // 3. 곧 마감 (D-1, D-2, D-3)
+  // 2. 곧 마감 (D-1, D-2, D-3)
   if (soonDueTasks.length > 0) {
     result += `**⏰ 곧 마감**\n`;
     result += soonDueTasks.map(task =>
@@ -199,7 +193,7 @@ function getTodaysTasksAndFormatMD() {
     ).join("\n") + "\n\n";
   }
 
-  // 4. 마감 지난 (D+)
+  // 3. 마감 지난 (D+)
   if (overdueTasks.length > 0) {
     result += `**⚠️ 마감 지남**\n`;
     result += overdueTasks.map(task =>
@@ -207,11 +201,19 @@ function getTodaysTasksAndFormatMD() {
     ).join("\n") + "\n\n";
   }
 
-  // 5. 신규/수정
+  // 4. 신규/수정
   if (newTasks.length > 0) {
     result += `**📝 신규/수정**\n`;
     result += newTasks.map(task =>
       `- [ ] ${task.title} (${task.reason})`
+    ).join("\n") + "\n\n";
+  }
+
+  // 5. 완료된 태스크 (우선순위 낮음)
+  if (completedTasks.length > 0) {
+    result += `**✅ 완료**\n`;
+    result += completedTasks.map(task =>
+      `- [x] ${task.title} (${task.reason})`
     ).join("\n") + "\n\n";
   }
 
