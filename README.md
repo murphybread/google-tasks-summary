@@ -4,6 +4,8 @@ Google Tasks를 활용한 일일/주간 업무 정리 웹 앱입니다. Google T
 
 ## 주요 기능
 
+![메인 화면 예시](images/MainPage.jpg)
+
 ### 일일 목표 관리
 - 오늘 관련 태스크를 우선순위별로 자동 분류
   - **오늘 마감 (D-Day)**: 오늘 마감인 태스크
@@ -12,10 +14,14 @@ Google Tasks를 활용한 일일/주간 업무 정리 웹 앱입니다. Google T
   - **신규/수정**: 오늘 생성되거나 수정된 태스크
   - **완료**: 오늘 완료한 태스크
 
+![일일 목표 관리 화면 예시](images/DailyHistory.png)
+
 ### 주간 정리
 - 주간 단위로 완료한 일과 해야 할 일을 집계
 - 이전/다음 주 기록 조회 가능
 - Google Sheets에 주간 기록 자동 저장
+
+![주간 정리 화면 예시](images/WeeklyHistory.png)
 
 ### 히스토리 관리
 - Google Sheets에 일일/주간 기록 자동 저장
