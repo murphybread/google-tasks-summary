@@ -34,6 +34,7 @@ Google Tasks를 활용한 일일/주간 업무 정리 웹 앱입니다. Google T
 - **Google Tasks API**: 태스크 데이터 조회
 - **Google Sheets API**: 히스토리 저장
 - **HTML/CSS/JavaScript**: 프론트엔드 UI
+- **Netlify**: DNS 호스팅 및 HTTPS 제공 ([커스텀 도메인 설정](docs/CUSTOM_DOMAIN.md))
 
 ## 프로젝트 구조
 
@@ -45,7 +46,9 @@ google-tasks-summary/
 ├── deploy.js            # 자동 배포 스크립트
 ├── package.json         # npm 설정
 ├── SETUP_GUIDE.md       # 설정 가이드
-└── README.md            # 프로젝트 문서
+├── README.md            # 프로젝트 문서
+└── docs/
+    └── CUSTOM_DOMAIN.md # 커스텀 도메인 설정 가이드
 ```
 
 ## 설치 및 설정
@@ -85,7 +88,7 @@ google-tasks-summary/
 
 ## 사용 방법
 
-1. Google Apps Script 웹 앱 URL에 접속
+1. Google Apps Script 웹 앱 URL에 접속 (또는 커스텀 도메인)
 2. "오늘 목표 갱신 및 기록" 버튼 클릭하여 최신 데이터 조회
 3. "주간 기록 관리" 버튼으로 주간 정리 확인
 4. "일일 히스토리" 버튼으로 과거 기록 조회

@@ -1,7 +1,7 @@
 // deploy.js - 배포 후 웹앱 URL 표시
 const { execSync } = require("child_process");
 
-const DEPLOYMENT_ID = "AKfycbxwi03iPbI7yvBTTagbtpt-sg4GU5JRlZ4kAQnXh9G8X_wiPJNkq_kPKMdiIGOoMQ";
+const DEPLOYMENT_ID = "AKfycbw6PutMkzyGYdTTWnonVHbJ6JqDc3qQXKtyJnG6OZQkLrMg4KDoLvzhT-BTWR5ZgS5w";
 
 // 커맨드 라인 인자에서 description 가져오기
 // 사용법: npm run deploy "설명 메시지"
