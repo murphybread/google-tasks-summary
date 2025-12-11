@@ -6,6 +6,11 @@
         "userSymbol": "Tasks",
         "version": "v1",
         "serviceId": "tasks"
+      },
+      {
+        "userSymbol": "Calendar",
+        "version": "v3",
+        "serviceId": "calendar"
       }
     ]
   },
@@ -14,7 +19,8 @@
   "oauthScopes": [
     "https://www.googleapis.com/auth/script.container.ui",
     "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/tasks"
+    "https://www.googleapis.com/auth/tasks",
+    "https://www.googleapis.com/auth/calendar.readonly"
   ],
   "executionApi": {
     "access": "ANYONE"

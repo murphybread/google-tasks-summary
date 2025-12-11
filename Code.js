@@ -18,6 +18,17 @@ function doGet() {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
+/**
+ * 권한 승인을 강제로 띄우기 위한 함수입니다.
+ * 이 함수를 실행하여 권한 팝업이 뜨면 승인해주세요.
+ */
+function requestCalendarPermissions() {
+  console.log("권한 확인 중...");
+  // try-catch 없이 직접 호출하여 팝업 유도
+  Calendar.Events.list("primary", { maxResults: 1 });
+  console.log("✅ 캘린더 권한이 확인되었습니다!");
+}
+
 function getOrUpdateWeeklySummary(weekOffset = 0) {
   const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
   let sheet = spreadsheet.getSheetByName(WEEKLY_SHEET_NAME);
@@ -163,7 +174,17 @@ function getTodaysTasksAndFormatMD() {
     throw new Error(`'${TASK_LIST_NAME}' 목록에서 태스크를 가져오는 중 오류: ${e.message}`);
   }
   const title = `**${TEAM_MEMBER_NAME} 님 (${todayKstString}) 일일 목록입니다** 🗓️\n\n`;
-  if (todayTasks.length === 0) return title + `- (오늘 관련 태스크 없음)`;
+
+  // 0. 오늘 일정 (Calendar)
+  const calendarEvents = getTodaysCalendarEvents(todayKstString);
+  let result = title;
+
+  if (calendarEvents.length > 0) {
+    result += `**📅 오늘 일정**\n`;
+    result += calendarEvents.map(e => `- [ ] ${e.time} ${e.title}`).join("\n") + "\n\n";
+  } else {
+    result += `**📅 오늘 일정**\n- (일정 없음)\n\n`;
+  }
 
   // 태스크를 카테고리별로 분류
   const dDayTasks = todayTasks.filter((t) => t.reason.includes("마감 D-Day") && t.status !== "completed");
@@ -176,7 +197,7 @@ function getTodaysTasksAndFormatMD() {
   );
   const completedTasks = todayTasks.filter((t) => t.status === "completed");
 
-  let result = title;
+  if (todayTasks.length === 0 && calendarEvents.length === 0) return title + `- (오늘 관련 태스크 및 일정 없음)`;
 
   // 1. 오늘 마감 (D-Day) - 가장 중요
   if (dDayTasks.length > 0) {
@@ -209,6 +230,54 @@ function getTodaysTasksAndFormatMD() {
   }
 
   return result.trim();
+}
+
+/**
+ * 오늘 날짜의 캘린더 이벤트를 가져옵니다.
+ * @param {string} todayKstString "yyyy-MM-dd" 형식의 오늘 날짜 문자열
+ * @returns {Array<{time: string, title: string}>}
+ */
+function getTodaysCalendarEvents(todayKstString) {
+  try {
+    const calendarId = "primary"; // 기본 캘린더 사용
+    const now = new Date();
+    const startOfDay = new Date(todayKstString + "T00:00:00+09:00");
+    const endOfDay = new Date(todayKstString + "T23:59:59+09:00");
+
+    const events = Calendar.Events.list(calendarId, {
+      timeMin: startOfDay.toISOString(),
+      timeMax: endOfDay.toISOString(),
+      singleEvents: true,
+      orderBy: "startTime",
+    });
+
+    if (!events.items || events.items.length === 0) {
+      return [];
+    }
+
+    return events.items.map(event => {
+      let timeString = "";
+      if (event.start.dateTime) {
+        // 시간 지정 이벤트
+        const start = new Date(event.start.dateTime);
+        const end = new Date(event.end.dateTime);
+        const startStr = Utilities.formatDate(start, "Asia/Seoul", "HH:mm");
+        const endStr = Utilities.formatDate(end, "Asia/Seoul", "HH:mm");
+        timeString = `[${startStr}~${endStr}]`;
+      } else if (event.start.date) {
+        // 하루 종일 이벤트
+        timeString = "[종일]";
+      }
+      return {
+        time: timeString,
+        title: event.summary
+      };
+    });
+
+  } catch (e) {
+    console.error("캘린더 이벤트 가져오기 실패: " + e.message);
+    return [{ time: "[에러]", title: `캘린더 오류: ${e.message}` }];
+  }
 }
 function recordHistory(mdContent) {
   /* 이전과 동일 */ try {

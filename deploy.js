@@ -10,7 +10,7 @@ const description = process.argv[2] || "";
 console.log("📤 코드를 Apps Script에 푸시합니다...\n");
 
 try {
-  execSync("clasp push", { stdio: "inherit" });
+  execSync("clasp push -f", { stdio: "inherit" });
   console.log("\n✅ 푸시 완료!\n");
 } catch (error) {
   console.error("❌ 푸시 실패:", error.message);
