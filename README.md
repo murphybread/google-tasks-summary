@@ -25,6 +25,8 @@ Google Tasks를 활용한 일일/주간 업무 정리 웹 앱입니다. Google T
 
 ### 히스토리 관리
 - Google Sheets에 일일/주간 기록 자동 저장
+  - **Daily**: 일일 히스토리 시트 (자동 생성)
+  - **Weekly**: 주간 통계 시트 (자동 생성)
 - 최근 20개 일일 히스토리 조회
 - 동일 날짜 기록은 자동으로 덮어쓰기
 
@@ -32,7 +34,7 @@ Google Tasks를 활용한 일일/주간 업무 정리 웹 앱입니다. Google T
 
 - **Google Apps Script**: 서버리스 백엔드
 - **Google Tasks API**: 태스크 데이터 조회
-- **Google Sheets API**: 히스토리 저장
+- **Google Sheets API**: 히스토리 저장 (시트 자동 생성)
 - **HTML/CSS/JavaScript**: 프론트엔드 UI
 - **Netlify**: DNS 호스팅 및 HTTPS 제공 ([커스텀 도메인 설정](docs/CUSTOM_DOMAIN.md))
 

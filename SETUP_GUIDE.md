@@ -14,6 +14,7 @@
 - Google Sheets에서 빈 스프레드시트 생성 및 ID 확인
   - 스프레드시트 URL: `https://docs.google.com/spreadsheets/d/{SHEET_ID}/edit`
   - `{SHEET_ID}` 부분을 복사해두기
+  - **참고**: 시트(탭)를 미리 만들 필요가 없습니다. `Daily`, `Weekly` 시트가 자동으로 생성됩니다.
 
 ### 1.2 프로젝트 초기화
 
