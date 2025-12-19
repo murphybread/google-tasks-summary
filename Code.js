@@ -73,159 +73,166 @@ function getOrUpdateWeeklySummary(weekOffset = 0) {
   }
 }
 
-// --- 나머지 함수들은 생략 (이전 답변과 동일) ---
+/**
+ * Retrieve tasks from multiple lists and format them into Markdown.
+ * Supports multiple list names separated by commas (e.g., "Normal, High").
+ */
 function getTodaysTasksAndFormatMD() {
-  /* 이전과 동일 */ try {
+  try {
     Tasks.Tasklists.list();
   } catch (e) {
-    throw new Error("Google Tasks API 서비스가 활성화되지 않았습니다.");
+    throw new Error("Google Tasks API service is not enabled.");
   }
-  const taskListId = findTaskListIdByName_(TASK_LIST_NAME);
-  if (!taskListId) throw new Error(`'${TASK_LIST_NAME}' Task 목록을 찾을 수 없습니다.`);
+
+  // Split list names by comma and trim whitespace
+  const targetListNames = TASK_LIST_NAME.split(",").map((name) => name.trim());
+  const todayTasks = [];
   const now = new Date();
   const todayKstString = Utilities.formatDate(now, "Asia/Seoul", "yyyy-MM-dd");
-  const todayTasks = [];
-  let pageToken = null;
-  try {
-    do {
-      const response = Tasks.Tasks.list(taskListId, {
-        showCompleted: true,
-        showHidden: true,
-        maxResults: 100,
-        pageToken: pageToken,
-      });
-      if (response.items) {
-        response.items.forEach((task) => {
-          let isTaskForToday = false;
-          let reason = "";
 
-          // 1. 완료된 태스크 (완료 날짜 저장)
-          let completedDate = null;
-          if (task.completed) {
-            completedDate = Utilities.formatDate(new Date(task.completed), "Asia/Seoul", "yyyy-MM-dd");
-            if (completedDate === todayKstString) {
-              isTaskForToday = true;
-              reason = `완료: ${completedDate}`;
+  // Iterate through each list name to fetch tasks
+  targetListNames.forEach((listName) => {
+    const taskListId = findTaskListIdByName_(listName);
+
+    if (!taskListId) {
+      console.warn(`Task list not found: ${listName}`);
+      return; // Skip if list is not found
+    }
+
+    let pageToken = null;
+    try {
+      do {
+        const response = Tasks.Tasks.list(taskListId, {
+          showCompleted: true,
+          showHidden: true,
+          maxResults: 100,
+          pageToken: pageToken,
+        });
+
+        if (response.items) {
+          response.items.forEach((task) => {
+            let isTaskForToday = false;
+            let reason = "";
+
+            // 1. Check completed tasks
+            let completedDate = null;
+            if (task.completed) {
+              completedDate = Utilities.formatDate(new Date(task.completed), "Asia/Seoul", "yyyy-MM-dd");
+              if (completedDate === todayKstString) {
+                isTaskForToday = true;
+                reason = `Completed: ${completedDate}`;
+              }
             }
-          }
 
-          // 2. 마감일 체크 (오늘, 과거, 미래 모두)
-          if (task.due && task.status !== "completed") {
-            const dueDate = new Date(task.due);
-            const dueDateKst = Utilities.formatDate(dueDate, "Asia/Seoul", "yyyy-MM-dd");
-            const today = new Date(todayKstString);
-            const due = new Date(dueDateKst);
+            // 2. Check due date
+            if (task.due && task.status !== "completed") {
+              const dueDate = new Date(task.due);
+              const dueDateKst = Utilities.formatDate(dueDate, "Asia/Seoul", "yyyy-MM-dd");
+              const today = new Date(todayKstString);
+              const due = new Date(dueDateKst);
 
-            // 날짜 차이 계산 (일 단위)
-            const diffTime = due.getTime() - today.getTime();
-            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+              const diffTime = due.getTime() - today.getTime();
+              const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-            // D-day 계산: 오늘이면 D-Day, 과거면 D+N, 미래면 D-N
-            let dDayLabel = "";
-            if (diffDays === 0) {
-              dDayLabel = "마감 D-Day";
-              isTaskForToday = true;
-            } else if (diffDays < 0) {
-              dDayLabel = `마감 D+${Math.abs(diffDays)}`;
-              // 과거 마감 중 최근 3일까지만 표시
-              if (Math.abs(diffDays) <= 3) {
+              let dDayLabel = "";
+              if (diffDays === 0) {
+                dDayLabel = "Due D-Day";
+                isTaskForToday = true;
+              } else if (diffDays < 0) {
+                dDayLabel = `Overdue D+${Math.abs(diffDays)}`;
+                if (Math.abs(diffDays) <= 3) {
+                  isTaskForToday = true;
+                }
+              } else if (diffDays > 0 && diffDays <= 3) {
+                dDayLabel = `Due D-${diffDays}`;
                 isTaskForToday = true;
               }
-            } else if (diffDays > 0 && diffDays <= 3) {
-              dDayLabel = `마감 D-${diffDays}`;
-              // 미래 마감 중 3일 이내만 표시
-              isTaskForToday = true;
+
+              if (dDayLabel) {
+                if (reason) reason += `, ${dDayLabel}`;
+                else reason = dDayLabel;
+              }
             }
 
-            if (dDayLabel) {
-              if (reason) reason += `, ${dDayLabel}`;
-              else reason = dDayLabel;
+            // 3. Check newly created or updated tasks
+            if (
+              task.updated &&
+              Utilities.formatDate(new Date(task.updated), "Asia/Seoul", "yyyy-MM-dd") === todayKstString &&
+              !task.completed
+            ) {
+              if (!reason) {
+                isTaskForToday = true;
+                reason = "New/Updated";
+              }
             }
-          }
 
-          // 3. 오늘 생성된 태스크 (updated 필드 사용)
-          if (
-            task.updated &&
-            Utilities.formatDate(new Date(task.updated), "Asia/Seoul", "yyyy-MM-dd") === todayKstString &&
-            !task.completed // 완료되지 않은 태스크만
-          ) {
-            // 생성 날짜를 직접 확인하는 것이 어려우므로 updated 필드 활용
-            // updated가 오늘이고 완료되지 않은 태스크는 오늘 생성/수정된 것으로 간주
-            if (!reason) {
-              // 이미 마감으로 표시되지 않았다면
-              isTaskForToday = true;
-              reason = "신규/수정";
+            if (isTaskForToday && task.title) {
+              todayTasks.push({
+                title: task.title,
+                status: task.status,
+                reason: reason,
+                completedDate: completedDate,
+                listName: listName, // Track source list name if needed
+              });
             }
-          }
+          });
+        }
+        pageToken = response.nextPageToken;
+      } while (pageToken);
+    } catch (e) {
+      console.error(`Error fetching tasks from list '${listName}': ${e.message}`);
+    }
+  });
 
-          if (isTaskForToday && task.title) {
-            todayTasks.push({
-              title: task.title,
-              status: task.status,
-              reason: reason,
-              completedDate: completedDate,
-            });
-          }
-        });
-      }
-      pageToken = response.nextPageToken;
-    } while (pageToken);
-  } catch (e) {
-    throw new Error(`'${TASK_LIST_NAME}' 목록에서 태스크를 가져오는 중 오류: ${e.message}`);
-  }
-  const title = `**${TEAM_MEMBER_NAME} 님 (${todayKstString}) 일일 목록입니다** 🗓️\n\n`;
+  const title = `**${TEAM_MEMBER_NAME} (${todayKstString}) Daily Tasks** 🗓️\n\n`;
 
-  // 0. 오늘 일정 (Calendar)
+  // 0. Calendar Events
   const calendarEvents = getTodaysCalendarEvents(todayKstString);
   let result = title;
 
   if (calendarEvents.length > 0) {
-    result += `**📅 오늘 일정**\n`;
-    result += calendarEvents.map(e => `- [ ] ${e.time} ${e.title}`).join("\n") + "\n\n";
+    result += `**📅 Today's Schedule**\n`;
+    result += calendarEvents.map((e) => `- [ ] ${e.time} ${e.title}`).join("\n") + "\n\n";
   } else {
-    result += `**📅 오늘 일정**\n- (일정 없음)\n\n`;
+    result += `**📅 Today's Schedule**\n- (No events)\n\n`;
   }
 
-  // 태스크를 카테고리별로 분류
-  const dDayTasks = todayTasks.filter((t) => t.reason.includes("마감 D-Day") && t.status !== "completed");
+  // Categorize tasks
+  const dDayTasks = todayTasks.filter((t) => t.reason.includes("Due D-Day") && t.status !== "completed");
   const soonDueTasks = todayTasks.filter(
-    (t) => t.reason.includes("마감 D-") && !t.reason.includes("D-Day") && t.status !== "completed"
+    (t) => t.reason.includes("Due D-") && !t.reason.includes("D-Day") && t.status !== "completed"
   );
-  const overdueTasks = todayTasks.filter((t) => t.reason.includes("마감 D+") && t.status !== "completed");
+  const overdueTasks = todayTasks.filter((t) => t.reason.includes("Overdue D+") && t.status !== "completed");
   const newTasks = todayTasks.filter(
-    (t) => t.reason === "신규/수정" && t.status !== "completed" && !t.reason.includes("마감")
+    (t) => t.reason === "New/Updated" && t.status !== "completed" && !t.reason.includes("Due")
   );
   const completedTasks = todayTasks.filter((t) => t.status === "completed");
 
-  if (todayTasks.length === 0 && calendarEvents.length === 0) return title + `- (오늘 관련 태스크 및 일정 없음)`;
+  if (todayTasks.length === 0 && calendarEvents.length === 0) return title + `- (No tasks or events for today)`;
 
-  // 1. 오늘 마감 (D-Day) - 가장 중요
+  // Generate Markdown Output
   if (dDayTasks.length > 0) {
-    result += `**🔥 오늘 마감**\n`;
+    result += `**🔥 Due Today**\n`;
     result += dDayTasks.map((task) => `- [ ] ${task.title} (${task.reason})`).join("\n") + "\n\n";
   }
 
-  // 2. 곧 마감 (D-1, D-2, D-3)
   if (soonDueTasks.length > 0) {
-    result += `**⏰ 곧 마감**\n`;
+    result += `**⏰ Due Soon**\n`;
     result += soonDueTasks.map((task) => `- [ ] ${task.title} (${task.reason})`).join("\n") + "\n\n";
   }
 
-  // 3. 마감 지난 (D+)
   if (overdueTasks.length > 0) {
-    result += `**⚠️ 마감 지남**\n`;
+    result += `**⚠️ Overdue**\n`;
     result += overdueTasks.map((task) => `- [ ] ${task.title} (${task.reason})`).join("\n") + "\n\n";
   }
 
-  // 4. 신규/수정
   if (newTasks.length > 0) {
-    result += `**📝 신규/수정**\n`;
+    result += `**📝 New/Updated**\n`;
     result += newTasks.map((task) => `- [ ] ${task.title} (${task.reason})`).join("\n") + "\n\n";
   }
 
-  // 5. 완료된 태스크 (우선순위 낮음)
   if (completedTasks.length > 0) {
-    result += `**✅ 완료**\n`;
+    result += `**✅ Completed**\n`;
     result += completedTasks.map((task) => `- [x] ${task.title} (${task.reason})`).join("\n") + "\n\n";
   }
 
@@ -255,7 +262,7 @@ function getTodaysCalendarEvents(todayKstString) {
       return [];
     }
 
-    return events.items.map(event => {
+    return events.items.map((event) => {
       let timeString = "";
       if (event.start.dateTime) {
         // 시간 지정 이벤트
@@ -270,10 +277,9 @@ function getTodaysCalendarEvents(todayKstString) {
       }
       return {
         time: timeString,
-        title: event.summary
+        title: event.summary,
       };
     });
-
   } catch (e) {
     console.error("캘린더 이벤트 가져오기 실패: " + e.message);
     return [{ time: "[에러]", title: `캘린더 오류: ${e.message}` }];
@@ -341,43 +347,61 @@ function getMondayDateString_(weekOffset) {
   const monday = new Date(kstNow.setDate(diff));
   return Utilities.formatDate(monday, "Asia/Seoul", "yyyy-MM-dd");
 }
+
+/**
+ * Generate weekly summary data from multiple lists.
+ */
 function generateWeeklySummaryData_(weekOffset) {
-  /* 이전과 동일 */ const taskListId = findTaskListIdByName_(TASK_LIST_NAME);
-  if (!taskListId) throw new Error(`'${TASK_LIST_NAME}' Task 목록을 찾을 수 없습니다.`);
+  // Split list names by comma and trim whitespace
+  const targetListNames = TASK_LIST_NAME.split(",").map((name) => name.trim());
+
   const monday = new Date(getMondayDateString_(weekOffset));
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
   const weekStartKst = Utilities.formatDate(monday, "Asia/Seoul", "yyyy-MM-dd");
   const weekEndKst = Utilities.formatDate(sunday, "Asia/Seoul", "yyyy-MM-dd");
-  const completedTasks = [],
-    todoTasks = [];
-  let pageToken = null;
-  do {
-    const response = Tasks.Tasks.list(taskListId, {
-      showCompleted: true,
-      showHidden: true,
-      maxResults: 100,
-      pageToken: pageToken,
-    });
-    if (response.items) {
-      response.items.forEach((task) => {
-        if (!task.title) return;
-        if (task.completed) {
-          const completedKst = Utilities.formatDate(new Date(task.completed), "Asia/Seoul", "yyyy-MM-dd");
-          if (completedKst >= weekStartKst && completedKst <= weekEndKst)
-            completedTasks.push({ title: task.title, date: completedKst });
-        }
-        if (task.status !== "completed") {
-          const updatedKst = Utilities.formatDate(new Date(task.updated), "Asia/Seoul", "yyyy-MM-dd");
-          if (updatedKst >= weekStartKst && updatedKst <= weekEndKst)
-            todoTasks.push({ title: task.title, date: updatedKst });
-        }
-      });
+
+  const completedTasks = [];
+  const todoTasks = [];
+
+  // Iterate through each list name
+  targetListNames.forEach((listName) => {
+    const taskListId = findTaskListIdByName_(listName);
+    if (!taskListId) {
+      console.warn(`Task list not found: ${listName}`);
+      return;
     }
-    pageToken = response.nextPageToken;
-  } while (pageToken);
+
+    let pageToken = null;
+    do {
+      const response = Tasks.Tasks.list(taskListId, {
+        showCompleted: true,
+        showHidden: true,
+        maxResults: 100,
+        pageToken: pageToken,
+      });
+      if (response.items) {
+        response.items.forEach((task) => {
+          if (!task.title) return;
+          if (task.completed) {
+            const completedKst = Utilities.formatDate(new Date(task.completed), "Asia/Seoul", "yyyy-MM-dd");
+            if (completedKst >= weekStartKst && completedKst <= weekEndKst)
+              completedTasks.push({ title: task.title, date: completedKst });
+          }
+          if (task.status !== "completed") {
+            const updatedKst = Utilities.formatDate(new Date(task.updated), "Asia/Seoul", "yyyy-MM-dd");
+            if (updatedKst >= weekStartKst && updatedKst <= weekEndKst)
+              todoTasks.push({ title: task.title, date: updatedKst });
+          }
+        });
+      }
+      pageToken = response.nextPageToken;
+    } while (pageToken);
+  });
+
   completedTasks.sort((a, b) => a.date.localeCompare(b.date));
   todoTasks.sort((a, b) => a.date.localeCompare(b.date));
+
   return {
     period: `${Utilities.formatDate(monday, "Asia/Seoul", "yyyy-MM-dd(E)")} ~ ${Utilities.formatDate(
       sunday,
@@ -388,14 +412,15 @@ function generateWeeklySummaryData_(weekOffset) {
     todoCount: todoTasks.length,
     completedTasks:
       completedTasks.length > 0
-        ? completedTasks.map((t) => `- [x] ${t.title} (완료: ${t.date})`).join("\n")
-        : `(완료한 태스크 없음)`,
+        ? completedTasks.map((t) => `- [x] ${t.title} (Done: ${t.date})`).join("\n")
+        : `(No completed tasks)`,
     todoTasks:
       todoTasks.length > 0
-        ? todoTasks.map((t) => `- [ ] ${t.title} (수정: ${t.date})`).join("\n")
-        : `(해야 할 태스크 없음)`,
+        ? todoTasks.map((t) => `- [ ] ${t.title} (Updated: ${t.date})`).join("\n")
+        : `(No active tasks)`,
   };
 }
+
 function formatDataToMarkdown_(data) {
   /* 이전과 동일 */ let md = `**📊 ${TEAM_MEMBER_NAME} 님 주간 정리 (${data.period})**\n\n`;
   md += `✅ **완료한 일 (${data.completedCount}개)**\n`;
