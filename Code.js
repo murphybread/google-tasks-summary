@@ -173,6 +173,7 @@ function getTodaysTasksAndFormatMD() {
                 reason: reason,
                 completedDate: completedDate,
                 listName: listName, // Track source list name if needed
+                notes: task.notes || null, // Include task details/notes
               });
             }
           });
@@ -210,30 +211,50 @@ function getTodaysTasksAndFormatMD() {
 
   if (todayTasks.length === 0 && calendarEvents.length === 0) return title + `- (No tasks or events for today)`;
 
+  // Helper function to format task with optional notes
+  const formatTask = (task, checkbox) => {
+    let line = `${checkbox} ${task.title} (${task.reason})`;
+    if (task.notes) {
+      // Limit to first 5 lines of notes
+      const lines = task.notes.split("\n");
+      const limitedLines = lines.slice(0, 5);
+      const hasMore = lines.length > 5;
+
+      // Format as indented code block
+      line += `\n    \`\`\`\n`;
+      line += limitedLines.map((noteLine) => `    ${noteLine}`).join("\n");
+      if (hasMore) {
+        line += `\n    ...`;
+      }
+      line += `\n    \`\`\``;
+    }
+    return line;
+  };
+
   // Generate Markdown Output
   if (dDayTasks.length > 0) {
     result += `**🔥 Due Today**\n`;
-    result += dDayTasks.map((task) => `- [ ] ${task.title} (${task.reason})`).join("\n") + "\n\n";
+    result += dDayTasks.map((task) => formatTask(task, "- [ ]")).join("\n") + "\n\n";
   }
 
   if (soonDueTasks.length > 0) {
     result += `**⏰ Due Soon**\n`;
-    result += soonDueTasks.map((task) => `- [ ] ${task.title} (${task.reason})`).join("\n") + "\n\n";
+    result += soonDueTasks.map((task) => formatTask(task, "- [ ]")).join("\n") + "\n\n";
   }
 
   if (overdueTasks.length > 0) {
     result += `**⚠️ Overdue**\n`;
-    result += overdueTasks.map((task) => `- [ ] ${task.title} (${task.reason})`).join("\n") + "\n\n";
+    result += overdueTasks.map((task) => formatTask(task, "- [ ]")).join("\n") + "\n\n";
   }
 
   if (newTasks.length > 0) {
     result += `**📝 New/Updated**\n`;
-    result += newTasks.map((task) => `- [ ] ${task.title} (${task.reason})`).join("\n") + "\n\n";
+    result += newTasks.map((task) => formatTask(task, "- [ ]")).join("\n") + "\n\n";
   }
 
   if (completedTasks.length > 0) {
     result += `**✅ Completed**\n`;
-    result += completedTasks.map((task) => `- [x] ${task.title} (${task.reason})`).join("\n") + "\n\n";
+    result += completedTasks.map((task) => formatTask(task, "- [x]")).join("\n") + "\n\n";
   }
 
   return result.trim();
@@ -386,12 +407,12 @@ function generateWeeklySummaryData_(weekOffset) {
           if (task.completed) {
             const completedKst = Utilities.formatDate(new Date(task.completed), "Asia/Seoul", "yyyy-MM-dd");
             if (completedKst >= weekStartKst && completedKst <= weekEndKst)
-              completedTasks.push({ title: task.title, date: completedKst });
+              completedTasks.push({ title: task.title, date: completedKst, notes: task.notes || null });
           }
           if (task.status !== "completed") {
             const updatedKst = Utilities.formatDate(new Date(task.updated), "Asia/Seoul", "yyyy-MM-dd");
             if (updatedKst >= weekStartKst && updatedKst <= weekEndKst)
-              todoTasks.push({ title: task.title, date: updatedKst });
+              todoTasks.push({ title: task.title, date: updatedKst, notes: task.notes || null });
           }
         });
       }
@@ -401,6 +422,26 @@ function generateWeeklySummaryData_(weekOffset) {
 
   completedTasks.sort((a, b) => a.date.localeCompare(b.date));
   todoTasks.sort((a, b) => a.date.localeCompare(b.date));
+
+  // Helper function to format weekly task with notes
+  const formatWeeklyTask = (t, checkbox, dateLabel) => {
+    let line = `${checkbox} ${t.title} (${dateLabel}: ${t.date})`;
+    if (t.notes) {
+      // Limit to first 5 lines of notes
+      const lines = t.notes.split("\n");
+      const limitedLines = lines.slice(0, 5);
+      const hasMore = lines.length > 5;
+
+      // Format as indented code block
+      line += `\n    \`\`\`\n`;
+      line += limitedLines.map((noteLine) => `    ${noteLine}`).join("\n");
+      if (hasMore) {
+        line += `\n    ...`;
+      }
+      line += `\n    \`\`\``;
+    }
+    return line;
+  };
 
   return {
     period: `${Utilities.formatDate(monday, "Asia/Seoul", "yyyy-MM-dd(E)")} ~ ${Utilities.formatDate(
@@ -412,11 +453,11 @@ function generateWeeklySummaryData_(weekOffset) {
     todoCount: todoTasks.length,
     completedTasks:
       completedTasks.length > 0
-        ? completedTasks.map((t) => `- [x] ${t.title} (Done: ${t.date})`).join("\n")
+        ? completedTasks.map((t) => formatWeeklyTask(t, "- [x]", "Done")).join("\n")
         : `(No completed tasks)`,
     todoTasks:
       todoTasks.length > 0
-        ? todoTasks.map((t) => `- [ ] ${t.title} (Updated: ${t.date})`).join("\n")
+        ? todoTasks.map((t) => formatWeeklyTask(t, "- [ ]", "Updated")).join("\n")
         : `(No active tasks)`,
   };
 }
