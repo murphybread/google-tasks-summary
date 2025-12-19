@@ -215,10 +215,34 @@ function getTodaysTasksAndFormatMD() {
   const formatTask = (task, checkbox) => {
     let line = `${checkbox} ${task.title} (${task.reason})`;
     if (task.notes) {
-      // Limit to first 5 lines of notes
+      // Limit to first 5 lines OR 300 characters (whichever comes first)
+      const maxChars = 300;
+      const maxLines = 5;
       const lines = task.notes.split("\n");
-      const limitedLines = lines.slice(0, 5);
-      const hasMore = lines.length > 5;
+      const limitedLines = [];
+      let totalLength = 0;
+      let hasMore = false;
+
+      for (let i = 0; i < lines.length && i < maxLines; i++) {
+        const currentLine = lines[i];
+
+        if (totalLength + currentLine.length > maxChars) {
+          // Add partial line up to 300 characters
+          const remainingChars = maxChars - totalLength;
+          if (remainingChars > 0) {
+            limitedLines.push(currentLine.substring(0, remainingChars));
+          }
+          hasMore = true;
+          break;
+        }
+
+        limitedLines.push(currentLine);
+        totalLength += currentLine.length;
+      }
+
+      if (lines.length > limitedLines.length || totalLength >= maxChars) {
+        hasMore = true;
+      }
 
       // Format as indented code block
       line += `\n    \`\`\`\n`;
@@ -427,10 +451,34 @@ function generateWeeklySummaryData_(weekOffset) {
   const formatWeeklyTask = (t, checkbox, dateLabel) => {
     let line = `${checkbox} ${t.title} (${dateLabel}: ${t.date})`;
     if (t.notes) {
-      // Limit to first 5 lines of notes
+      // Limit to first 5 lines OR 300 characters (whichever comes first)
+      const maxChars = 300;
+      const maxLines = 5;
       const lines = t.notes.split("\n");
-      const limitedLines = lines.slice(0, 5);
-      const hasMore = lines.length > 5;
+      const limitedLines = [];
+      let totalLength = 0;
+      let hasMore = false;
+
+      for (let i = 0; i < lines.length && i < maxLines; i++) {
+        const currentLine = lines[i];
+
+        if (totalLength + currentLine.length > maxChars) {
+          // Add partial line up to 300 characters
+          const remainingChars = maxChars - totalLength;
+          if (remainingChars > 0) {
+            limitedLines.push(currentLine.substring(0, remainingChars));
+          }
+          hasMore = true;
+          break;
+        }
+
+        limitedLines.push(currentLine);
+        totalLength += currentLine.length;
+      }
+
+      if (lines.length > limitedLines.length || totalLength >= maxChars) {
+        hasMore = true;
+      }
 
       // Format as indented code block
       line += `\n    \`\`\`\n`;
