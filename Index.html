@@ -25,6 +25,7 @@
   <h2>🗓️ 오늘의 목표</h2>
   <textarea id="md-output" readonly>로딩 중...</textarea>
   <div class="button-container">
+    <button id="copy-btn" class="main-btn" style="background-color: #17a2b8;">📋 복사</button>
     <button id="record-btn" class="main-btn">🔄 오늘 목표 갱신 및 기록</button>
     <button id="weekly-btn" class="weekly-btn">📊 주간 기록 관리</button>
     <button id="history-btn" class="secondary-btn">📜 일일 히스토리</button>
@@ -153,7 +154,19 @@
       setButtonsDisabled(false); // 💡 실패 시에도 모든 버튼 활성화
     }
 
+    function copyToClipboard() {
+      const text = mdOutput.value;
+      navigator.clipboard.writeText(text).then(() => {
+        statusDiv.innerText = "📋 클립보드에 복사되었습니다!";
+      }).catch(() => {
+        mdOutput.select();
+        document.execCommand('copy');
+        statusDiv.innerText = "📋 클립보드에 복사되었습니다!";
+      });
+    }
+
     document.addEventListener("DOMContentLoaded", loadDailyTasks);
+    document.getElementById("copy-btn").addEventListener("click", copyToClipboard);
     document.getElementById("record-btn").addEventListener("click", loadDailyTasks);
     document.getElementById("weekly-btn").addEventListener("click", () => loadWeeklySummary(0));
     document.getElementById("prev-week-btn").addEventListener("click", () => loadWeeklySummary(currentWeekOffset - 1));
