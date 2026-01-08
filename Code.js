@@ -89,6 +89,7 @@ function getTodaysTasksAndFormatMD() {
   const todayTasks = [];
   const now = new Date();
   const todayKstString = Utilities.formatDate(now, "Asia/Seoul", "yyyy-MM-dd");
+  const weekMondayKst = getMondayDateString_(0); // 이번 주 월요일
 
   // Iterate through each list name to fetch tasks
   targetListNames.forEach((listName) => {
@@ -114,11 +115,12 @@ function getTodaysTasksAndFormatMD() {
             let isTaskForToday = false;
             let reason = "";
 
-            // 1. Check completed tasks
+            // 1. Check completed tasks (이번 주 완료된 것 포함)
             let completedDate = null;
             if (task.completed) {
               completedDate = Utilities.formatDate(new Date(task.completed), "Asia/Seoul", "yyyy-MM-dd");
-              if (completedDate === todayKstString) {
+              // 이번 주 월요일 ~ 오늘 사이에 완료된 태스크
+              if (completedDate >= weekMondayKst && completedDate <= todayKstString) {
                 isTaskForToday = true;
                 reason = `Completed: ${completedDate}`;
               }
@@ -207,7 +209,8 @@ function getTodaysTasksAndFormatMD() {
   const newTasks = todayTasks.filter(
     (t) => t.reason === "New/Updated" && t.status !== "completed" && !t.reason.includes("Due")
   );
-  const completedTasks = todayTasks.filter((t) => t.status === "completed");
+  const todayCompletedTasks = todayTasks.filter((t) => t.status === "completed" && t.completedDate === todayKstString);
+  const weekCompletedTasks = todayTasks.filter((t) => t.status === "completed" && t.completedDate !== todayKstString);
 
   if (todayTasks.length === 0 && calendarEvents.length === 0) return title + `- (No tasks or events for today)`;
 
@@ -276,9 +279,14 @@ function getTodaysTasksAndFormatMD() {
     result += newTasks.map((task) => formatTask(task, "- [ ]")).join("\n") + "\n\n";
   }
 
-  if (completedTasks.length > 0) {
-    result += `**✅ Completed**\n`;
-    result += completedTasks.map((task) => formatTask(task, "- [x]")).join("\n") + "\n\n";
+  if (todayCompletedTasks.length > 0) {
+    result += `**✅ Today Completed**\n`;
+    result += todayCompletedTasks.map((task) => formatTask(task, "- [x]")).join("\n") + "\n\n";
+  }
+
+  if (weekCompletedTasks.length > 0) {
+    result += `**📅 This Week Completed**\n`;
+    result += weekCompletedTasks.map((task) => formatTask(task, "- [x]")).join("\n") + "\n\n";
   }
 
   return result.trim();
