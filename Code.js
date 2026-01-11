@@ -588,3 +588,90 @@ function findWeeklyRecord_(sheet, weekId) {
   }
   return null;
 }
+
+// =================================================================
+// --- 자동 배치 기능 (트리거용) ---
+// =================================================================
+
+/**
+ * 매일 자동으로 실행되어 Daily/Weekly 시트에 기록합니다.
+ * 이 함수를 시간 기반 트리거로 설정하세요.
+ *
+ * 설정 방법:
+ * 1. Google Apps Script 에디터에서 [트리거] 아이콘 클릭 (시계 모양)
+ * 2. [트리거 추가] 클릭
+ * 3. 실행할 함수: dailyAutoRecord
+ * 4. 이벤트 소스: 시간 기반
+ * 5. 시간 기반 트리거 유형: 일 단위 타이머
+ * 6. 시간대 선택: 오후 11시 ~ 자정 (23:00 ~ 00:00)
+ */
+function dailyAutoRecord() {
+  try {
+    console.log("🤖 자동 기록 시작...");
+
+    // 1. Daily 기록
+    const mdContent = getTodaysTasksAndFormatMD();
+    const dailyResult = recordHistory(mdContent);
+    console.log("Daily: " + dailyResult);
+
+    // 2. Weekly 기록 (이번 주)
+    const weeklyResult = getOrUpdateWeeklySummary(0);
+    console.log("Weekly: " + weeklyResult.source);
+
+    // 3. 일요일인 경우 최종 주간 기록 확정
+    const now = new Date();
+    const kstNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+    if (kstNow.getDay() === 0) {
+      console.log("📅 일요일 - 주간 기록 확정");
+    }
+
+    console.log("✅ 자동 기록 완료!");
+    return { success: true, daily: dailyResult, weekly: weeklyResult.source };
+  } catch (e) {
+    console.error("❌ 자동 기록 실패: " + e.message);
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * 트리거를 자동으로 설정하는 함수입니다.
+ * 이 함수를 한 번만 실행하면 매일 23시에 자동 기록이 설정됩니다.
+ */
+function setupDailyTrigger() {
+  // 기존 dailyAutoRecord 트리거 삭제
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(trigger => {
+    if (trigger.getHandlerFunction() === 'dailyAutoRecord') {
+      ScriptApp.deleteTrigger(trigger);
+      console.log("기존 트리거 삭제됨");
+    }
+  });
+
+  // 새 트리거 생성: 매일 23:55 근처 (KST)
+  ScriptApp.newTrigger('dailyAutoRecord')
+    .timeBased()
+    .atHour(23)
+    .nearMinute(55)
+    .everyDays(1)
+    .inTimezone('Asia/Seoul')
+    .create();
+
+  console.log("✅ 트리거 설정 완료! 매일 23:55 근처 (KST)에 자동 실행됩니다.");
+  return "트리거 설정 완료!";
+}
+
+/**
+ * 현재 설정된 트리거 목록을 확인합니다.
+ */
+function listTriggers() {
+  const triggers = ScriptApp.getProjectTriggers();
+  if (triggers.length === 0) {
+    console.log("설정된 트리거가 없습니다.");
+    return [];
+  }
+
+  return triggers.map(trigger => ({
+    function: trigger.getHandlerFunction(),
+    type: trigger.getEventType().toString(),
+  }));
+}
